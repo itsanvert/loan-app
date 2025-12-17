@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:loanapp/main.dart';
+
 import 'package:loanapp/screen/welcome_screen.dart';
 
 class LoanCalculatorApp extends StatelessWidget {
