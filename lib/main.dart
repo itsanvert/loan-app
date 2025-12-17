@@ -5,6 +5,7 @@ import 'package:printing/printing.dart';
 import 'package:excel/excel.dart';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
+import 'package:flutter/services.dart';
 
 // Note: Make sure to add these dependencies in pubspec.yaml:
 // dependencies:
@@ -163,42 +164,51 @@ class _LoanCalculatorPageState extends State<LoanCalculatorPage> {
   Future<void> exportToPDF() async {
     final pdf = pw.Document();
 
+    // Load logo from asset
+    final logoImage = pw.MemoryImage(
+      (await rootBundle.load('assets/image.png')).buffer.asUint8List(),
+    );
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(30),
         build: (pw.Context context) {
           return [
-            pw.Header(
-              level: 0,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
+            // Centered Logo
+            pw.Align(
+              alignment: pw.Alignment.center,
+              child: pw.Image(logoImage, height: 60),
+            ),
+            pw.Divider(thickness: 1, color: PdfColors.grey),
+            pw.SizedBox(height: 20),
+
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'SAMDECH PREAH MAHSANGHARAJA BOUR KRY UNIVERSITY',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
+                    'Total Loan Amount: \$${double.tryParse(principalController.text)?.toStringAsFixed(2) ?? "0.00"}',
                   ),
-                  pw.SizedBox(height: 10),
-                  pw.Text(
-                    'LOAN SCHEDULE',
-                    style: pw.TextStyle(
-                      fontSize: 16,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                  pw.SizedBox(height: 20),
+                  pw.Text('Interest Rate: ${interestController.text}% / month'),
+                  pw.Text('Term: ${monthsController.text} months'),
                 ],
               ),
             ),
+            pw.SizedBox(height: 20),
+
             pw.Table.fromTextArray(
               headers: [
-                'ខែទី',
-                'ប្រាក់ដើម',
-                'អត្រាការប្រាក់',
-                'ប្រាក់ត្រូវបង់',
-                'ប្រាក់នៅសល់',
+                'Month',
+                'Principal (\$)',
+                'Interest (\$)',
+                'Payment (\$)',
+                'Balance (\$)',
               ],
               data: loanSchedule.map((payment) {
                 return [
@@ -212,10 +222,42 @@ class _LoanCalculatorPageState extends State<LoanCalculatorPage> {
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 fontSize: 10,
+                color: PdfColors.white,
               ),
+              headerDecoration: pw.BoxDecoration(color: PdfColors.blue),
               cellStyle: const pw.TextStyle(fontSize: 9),
               cellAlignment: pw.Alignment.centerRight,
               headerAlignment: pw.Alignment.center,
+              border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey),
+            ),
+
+            pw.SizedBox(height: 20),
+            pw.Container(
+              decoration: pw.BoxDecoration(
+                border: pw.Border(
+                  top: pw.BorderSide(color: PdfColors.grey, width: 1),
+                ),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Text(
+                    'Total Paid: \$${loanSchedule.fold(0.0, (sum, p) => sum + p.totalPayment).toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                  pw.SizedBox(width: 20),
+                  pw.Text(
+                    'Total Interest: \$${loanSchedule.fold(0.0, (sum, p) => sum + p.interestPayment).toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ];
         },
@@ -229,41 +271,45 @@ class _LoanCalculatorPageState extends State<LoanCalculatorPage> {
 
   Future<void> exportToExcel() async {
     var excel = Excel.createExcel();
-    Sheet sheetObject = excel['Loan Schedule'];
+    Sheet sheet = excel['Loan Schedule'];
 
-    // Add headers
-    sheetObject.appendRow([
-      'ខែទី',
-      'ប្រាក់ដើម',
-      'អត្រាការប្រាក់',
-      'ប្រាក់ត្រូវបង់',
-      'ប្រាក់នៅសល់',
-    ]);
+    final headers = [
+      'Month',
+      'Principal (\$)',
+      'Interest (\$)',
+      'Payment (\$)',
+      'Balance (\$)',
+    ];
 
-    // Add data
+    // Add header row
+    sheet.appendRow(headers);
+
+    // Add data rows (formatted to 2 decimal places)
     for (var payment in loanSchedule) {
-      sheetObject.appendRow([
+      sheet.appendRow([
         payment.month,
-        payment.principalPayment,
-        payment.interestPayment,
-        payment.totalPayment,
-        payment.remainingBalance,
+        payment.principalPayment.toStringAsFixed(2),
+        payment.interestPayment.toStringAsFixed(2),
+        payment.totalPayment.toStringAsFixed(2),
+        payment.remainingBalance.toStringAsFixed(2),
       ]);
     }
 
     // Save file
-    var fileBytes = excel.save();
+    final fileBytes = excel.save();
     if (fileBytes != null) {
       await FileSaver.instance.saveFile(
-        name: 'loan_schedule',
+        name: 'Loan_Schedule',
         bytes: Uint8List.fromList(fileBytes),
         ext: 'xlsx',
         mimeType: MimeType.microsoftExcel,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Excel file exported successfully!')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Excel file exported successfully!')),
+        );
+      }
     }
   }
 
