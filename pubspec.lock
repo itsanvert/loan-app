@@ -240,6 +240,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.17.0"
+<<<<<<< HEAD
+=======
   mime:
     dependency: transitive
     description:
@@ -248,6 +250,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+>>>>>>> 17deb09f21530915ecdda7819a9501a4efc08544
   path:
     dependency: transitive
     description:
@@ -421,6 +424,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.7"
+<<<<<<< HEAD
+=======
   typed_data:
     dependency: transitive
     description:
@@ -429,6 +434,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+>>>>>>> 17deb09f21530915ecdda7819a9501a4efc08544
   vector_math:
     dependency: transitive
     description:
