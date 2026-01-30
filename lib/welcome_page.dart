@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sbkuapp/widget/login/login_screen.dart';
+import 'package:loanapp/widget/login/login_screen.dart';
+
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
